@@ -12,6 +12,7 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
         "pyarrow": "13.0.0", # bump version
         #"numpy": "1.21.2",  # omit defining numpy since pandas comes with it
         "scikit-learn": "1.3.2", # bump version
+        "xgboost": "1.7.0",
     }
 )
 class TaxiFarePrediction(FlowSpec):
@@ -56,15 +57,15 @@ class TaxiFarePrediction(FlowSpec):
         # In practice, you want split time series data in more sophisticated ways and run backtests.
         self.X = self.df["trip_distance"].values.reshape(-1, 1)
         self.y = self.df["total_amount"].values
-        self.next(self.linear_model)
+        self.next(self.nonlinear_model)
 
     @step
-    def linear_model(self):
-        "Fit a single variable, linear model to the data."
-        from sklearn.linear_model import LinearRegression
+    def nonlinear_model(self):
+        "Fit a simple XGBoost Regression model."
+        from xgboost import XGBRegressor
 
         # TODO: Play around with the model if you are feeling it.
-        self.model = LinearRegression()
+        self.model = XGBRegressor()
 
         self.next(self.validate)
 
@@ -112,7 +113,7 @@ class TaxiFarePrediction(FlowSpec):
     def validate(self):
         from sklearn.model_selection import cross_val_score
 
-        self.model_type = "linear_regression"
+        self.model_type = "xgboost"
         self.scores = cross_val_score(self.model, self.X, self.y, cv=5)
         current.card.append(Markdown("# Taxi Fare Prediction Results"))
         current.card.append(
